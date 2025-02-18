@@ -1,0 +1,20 @@
+Graduation_Project/
+│── esp32_simulation/       # ESP32 Sensor Data Simulation
+│   ├── esp32_simulator.py  # Generates fake sensor readings & sends data
+│   ├── thingspeak_sender.py  # Sends data to ThingSpeak
+│
+│── backend/                # Flask Backend API
+│   ├── server.py           # Main API handling sensor data
+│   ├── database.py         # SQLite database setup
+│   ├── requirements.txt    # Dependencies
+│
+│── frontend/               # Web Dashboard (HTML, JS)
+│   ├── templates/
+│   │   ├── index.html      # Web UI for monitoring
+│   ├── static/
+│   │   ├── styles.css      # Frontend styling (optional)
+│   ├── app.py              # Flask app to serve the web dashboard
+│
+│── README.md               # Project Documentation
+│── .gitignore              # Ignore unnecessary files
+│── requirements.txt        # Install all dependencies
