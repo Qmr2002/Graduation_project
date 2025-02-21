@@ -1,18 +1,39 @@
+import json
 import requests
 import random
 import time
+import os
 
 # ThingSpeak API Details
 THINGSPEAK_WRITE_API = "P1E6IR6D62KSYNAD"  # Your Write API Key
 THINGSPEAK_URL = "https://api.thingspeak.com/update"
+PUMP_STATUS_FILE = "../backend/pump_status.json"  # Path to pump status
+
+# Ensure pump_status.json exists
+if not os.path.exists(PUMP_STATUS_FILE):
+    with open(PUMP_STATUS_FILE, "w") as f:
+        json.dump({"pump": 0}, f)
+
+# Function to read stored pump status BEFORE SENDING DATA
+def read_pump_status():
+    try:
+        with open(PUMP_STATUS_FILE, "r") as f:
+            status = json.load(f)["pump"]
+            print(f"✅ Read Pump Status from JSON: {status}")  # Debugging Log
+            return status
+    except (FileNotFoundError, json.JSONDecodeError):
+        return 0  # Default to OFF
 
 # Function to generate simulated sensor readings
 def get_sensor_data():
+    pump_status = read_pump_status()
+    print(f"✅ ESP32 Read Pump Status: {pump_status}")  # Debugging Log
+
     return {
-        "soil_moisture": round(random.uniform(20, 80), 2),  # Simulated soil moisture %
-        "temperature": round(random.uniform(20, 35), 2),    # Simulated temperature °C
-        "humidity": round(random.uniform(30, 70), 2),       # Simulated humidity %
-        "irrigation": 1 if random.uniform(0, 100) < 30 else 0  # 1 = ON, 0 = OFF
+        "soil_moisture": round(random.uniform(20, 80), 2),
+        "temperature": round(random.uniform(20, 35), 2),
+        "humidity": round(random.uniform(30, 70), 2),
+        "irrigation": pump_status  # ✅ This should match pump_status.json!
     }
 
 # Function to send data to ThingSpeak
@@ -24,7 +45,7 @@ def send_to_thingspeak():
             "field1": data["soil_moisture"],
             "field2": data["temperature"],
             "field3": data["humidity"],
-            "field4": data["irrigation"]
+            "field4": data["irrigation"]  # ✅ Sends actual pump status
         }
 
         response = requests.get(THINGSPEAK_URL, params=payload)

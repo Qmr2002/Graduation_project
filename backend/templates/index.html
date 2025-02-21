@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Irrigation Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js -->
+    <script>
+        let moistureChart, tempChart, humidityChart;
+    
+        function createCharts() {
+            const ctx1 = document.getElementById("moistureChart").getContext("2d");
+            moistureChart = new Chart(ctx1, {
+                type: "line",
+                data: { labels: [], datasets: [{ label: "Soil Moisture (%)", data: [], borderColor: "blue", fill: false }] },
+                options: { responsive: true }
+            });
+    
+            const ctx2 = document.getElementById("tempChart").getContext("2d");
+            tempChart = new Chart(ctx2, {
+                type: "line",
+                data: { labels: [], datasets: [{ label: "Temperature (°C)", data: [], borderColor: "red", fill: false }] },
+                options: { responsive: true }
+            });
+    
+            const ctx3 = document.getElementById("humidityChart").getContext("2d");
+            humidityChart = new Chart(ctx3, {
+                type: "line",
+                data: { labels: [], datasets: [{ label: "Humidity (%)", data: [], borderColor: "green", fill: false }] },
+                options: { responsive: true }
+            });
+        }
+    
+        function updateCharts(timestamp, moisture, temperature, humidity) {
+            if (moistureChart.data.labels.length > 10) {
+                moistureChart.data.labels.shift();
+                moistureChart.data.datasets[0].data.shift();
+            }
+            if (tempChart.data.labels.length > 10) {
+                tempChart.data.labels.shift();
+                tempChart.data.datasets[0].data.shift();
+            }
+            if (humidityChart.data.labels.length > 10) {
+                humidityChart.data.labels.shift();
+                humidityChart.data.datasets[0].data.shift();
+            }
+    
+            moistureChart.data.labels.push(timestamp);
+            moistureChart.data.datasets[0].data.push(moisture);
+            moistureChart.update();
+    
+            tempChart.data.labels.push(timestamp);
+            tempChart.data.datasets[0].data.push(temperature);
+            tempChart.update();
+    
+            humidityChart.data.labels.push(timestamp);
+            humidityChart.data.datasets[0].data.push(humidity);
+            humidityChart.update();
+        }
+    
+            function fetchData() {
+        fetch("/api/data")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("moisture").innerText = data.soil_moisture + "%";
+                document.getElementById("temperature").innerText = data.temperature + "°C";
+                document.getElementById("humidity").innerText = data.humidity + "%";
+                document.getElementById("irrigation").innerText = "Pump: " + data.irrigation;
+            })
+            .catch(error => console.error("❌ Error fetching data:", error));
+    }
+
+    function controlPump(action) {
+        fetch("/api/control_pump", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: action })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            setTimeout(fetchData, 2000); // ✅ Ensures the UI updates
+        });
+    }
+
+    setInterval(fetchData, 5000); // Refresh every 5 seconds
+    </script>
+</head>
+<body>
+    <h1>Smart Irrigation System</h1>
+    <p>Soil Moisture: <span id="moisture">Loading...</span></p>
+    <p>Temperature: <span id="temperature">Loading...</span></p>
+    <p>Humidity: <span id="humidity">Loading...</span></p>
+    <p><strong id="irrigation">Loading...</strong></p>
+
+    <button onclick="controlPump('on')">Turn Pump ON</button>
+    <button onclick="controlPump('off')">Turn Pump OFF</button>
+
+    <h2>Live Data Charts</h2>
+    <canvas id="moistureChart" width="400" height="200"></canvas>
+    <canvas id="tempChart" width="400" height="200"></canvas>
+    <canvas id="humidityChart" width="400" height="200"></canvas>
+</body>
+</html>
