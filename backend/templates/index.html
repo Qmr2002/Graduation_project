@@ -56,7 +56,7 @@
             humidityChart.update();
         }
     
-            function fetchData() {
+        function fetchData() {
         fetch("/api/data")
             .then(response => response.json())
             .then(data => {
@@ -77,11 +77,12 @@
         .then(response => response.json())
         .then(data => {
             alert(data.message);
-            setTimeout(fetchData, 2000); // ✅ Ensures the UI updates
-        });
+            setTimeout(fetchData, 2000); // ✅ Ensure UI updates correctly
+        })
+        .catch(error => alert("Error: " + error));
     }
 
-    setInterval(fetchData, 5000); // Refresh every 5 seconds
+    setInterval(fetchData, 5000); // Refresh every 5 seconds; // Refresh every 5 seconds
     </script>
 </head>
 <body>
