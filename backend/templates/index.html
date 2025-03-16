@@ -2,102 +2,196 @@
 <html>
 <head>
     <title>Smart Irrigation Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js -->
-    <script>
-        let moistureChart, tempChart, humidityChart;
-    
-        function createCharts() {
-            const ctx1 = document.getElementById("moistureChart").getContext("2d");
-            moistureChart = new Chart(ctx1, {
-                type: "line",
-                data: { labels: [], datasets: [{ label: "Soil Moisture (%)", data: [], borderColor: "blue", fill: false }] },
-                options: { responsive: true }
-            });
-    
-            const ctx2 = document.getElementById("tempChart").getContext("2d");
-            tempChart = new Chart(ctx2, {
-                type: "line",
-                data: { labels: [], datasets: [{ label: "Temperature (°C)", data: [], borderColor: "red", fill: false }] },
-                options: { responsive: true }
-            });
-    
-            const ctx3 = document.getElementById("humidityChart").getContext("2d");
-            humidityChart = new Chart(ctx3, {
-                type: "line",
-                data: { labels: [], datasets: [{ label: "Humidity (%)", data: [], borderColor: "green", fill: false }] },
-                options: { responsive: true }
-            });
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
         }
-    
-        function updateCharts(timestamp, moisture, temperature, humidity) {
-            if (moistureChart.data.labels.length > 10) {
-                moistureChart.data.labels.shift();
-                moistureChart.data.datasets[0].data.shift();
-            }
-            if (tempChart.data.labels.length > 10) {
-                tempChart.data.labels.shift();
-                tempChart.data.datasets[0].data.shift();
-            }
-            if (humidityChart.data.labels.length > 10) {
-                humidityChart.data.labels.shift();
-                humidityChart.data.datasets[0].data.shift();
-            }
-    
-            moistureChart.data.labels.push(timestamp);
-            moistureChart.data.datasets[0].data.push(moisture);
-            moistureChart.update();
-    
-            tempChart.data.labels.push(timestamp);
-            tempChart.data.datasets[0].data.push(temperature);
-            tempChart.update();
-    
-            humidityChart.data.labels.push(timestamp);
-            humidityChart.data.datasets[0].data.push(humidity);
-            humidityChart.update();
+
+        .dashboard-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-    
-        function fetchData() {
-        fetch("/api/data")
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("moisture").innerText = data.soil_moisture + "%";
-                document.getElementById("temperature").innerText = data.temperature + "°C";
-                document.getElementById("humidity").innerText = data.humidity + "%";
-                document.getElementById("irrigation").innerText = "Pump: " + data.irrigation;
-            })
-            .catch(error => console.error("❌ Error fetching data:", error));
-    }
 
-    function controlPump(action) {
-        fetch("/api/control_pump", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: action })
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            setTimeout(fetchData, 2000); // ✅ Ensure UI updates correctly
-        })
-        .catch(error => alert("Error: " + error));
-    }
+        .status-indicators {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
 
-    setInterval(fetchData, 5000); // Refresh every 5 seconds; // Refresh every 5 seconds
-    </script>
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .chart-container {
+            height: 180px;
+            margin: 15px 0;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:disabled {
+            background: #cccccc;
+        }
+
+        #irrigation {
+            color: #2196F3;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <h1>Smart Irrigation System</h1>
-    <p>Soil Moisture: <span id="moisture">Loading...</span></p>
-    <p>Temperature: <span id="temperature">Loading...</span></p>
-    <p>Humidity: <span id="humidity">Loading...</span></p>
-    <p><strong id="irrigation">Loading...</strong></p>
+    <div class="dashboard-card">
+        <h1>🌱 Smart Irrigation System</h1>
+        
+        <div class="status-indicators">
+            <div class="status-item">
+                <div>Soil Moisture</div>
+                <div id="moisture" class="value">--%</div>
+            </div>
+            <div class="status-item">
+                <div>Temperature</div>
+                <div id="temperature" class="value">--°C</div>
+            </div>
+            <div class="status-item">
+                <div>Humidity</div>
+                <div id="humidity" class="value">--%</div>
+            </div>
+            <div class="status-item">
+                <div>Pump Status</div>
+                <div id="irrigation">--</div>
+            </div>
+        </div>
 
-    <button onclick="controlPump('on')">Turn Pump ON</button>
-    <button onclick="controlPump('off')">Turn Pump OFF</button>
+        <div>
+            <button onclick="controlPump('on')">🚰 Start Irrigation</button>
+            <button onclick="controlPump('off')">⏹ Stop Irrigation</button>
+        </div>
 
-    <h2>Live Data Charts</h2>
-    <canvas id="moistureChart" width="400" height="200"></canvas>
-    <canvas id="tempChart" width="400" height="200"></canvas>
-    <canvas id="humidityChart" width="400" height="200"></canvas>
+        <div class="chart-container">
+            <canvas id="moistureChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="tempChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="humidityChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const chartConfig = {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            },
+            scales: {
+                x: { display: false },
+                y: { 
+                    min: 0,
+                    max: 100,
+                    ticks: { stepSize: 20 }
+                }
+            }
+        };
+
+        const charts = {
+            moisture: createChart('moistureChart', 'Soil Moisture (%)', '#2196F3'),
+            temp: createChart('tempChart', 'Temperature (°C)', '#ff6384'),
+            humidity: createChart('humidityChart', 'Humidity (%)', '#4CAF50')
+        };
+
+        function createChart(id, label, color) {
+            return new Chart(document.getElementById(id).getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label,
+                        data: [],
+                        borderColor: color,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 2
+                    }]
+                },
+                options: chartConfig
+            });
+        }
+
+        function updateChart(chart, value) {
+            const time = new Date().toLocaleTimeString();
+            if (chart.data.labels.length > 15) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+            chart.data.labels.push(time);
+            chart.data.datasets[0].data.push(value);
+            chart.update();
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+                
+                document.getElementById('moisture').textContent = `${data.soil_moisture}%`;
+                document.getElementById('temperature').textContent = `${data.temperature}°C`;
+                document.getElementById('humidity').textContent = `${data.humidity}%`;
+                document.getElementById('irrigation').textContent = 
+                    data.irrigation === 'ON' ? '🟢 ACTIVE' : '🔴 INACTIVE';
+
+                updateChart(charts.moisture, data.soil_moisture);
+                updateChart(charts.temp, data.temperature);
+                updateChart(charts.humidity, data.humidity);
+            } catch (error) {
+                console.error('Fetch error:', error);
+            }
+        }
+
+        async function controlPump(action) {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            try {
+                const response = await fetch('/api/control_pump', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                const result = await response.json();
+                alert(result.message);
+                await fetchData();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            } finally {
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        // Initialize
+        setInterval(fetchData, 5000);
+        fetchData();
+    </script>
 </body>
 </html>
